@@ -1,0 +1,3 @@
+[submodule "data/rJokesData"]
+	path = data/rJokesData
+	url = https://github.com/orionw/rJokesData.git
