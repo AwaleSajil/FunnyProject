@@ -17,27 +17,22 @@ def gen_joke_metrics_llm(joke, url="http://localhost:11434/api/generate", model_
         return [-1] * 8
 
     system_message = (
-        "You are a joke analysis expert. "
-        "Your task is to evaluate the following joke based on several key metrics. "
-        "For each metric, provide only the numerical value (a continuous scale) on a separate line, without any text, labels, bullet points, or explanations. "
-        ""
-        "Strictly follow these guidelines:"
-        "- Output must contain exactly **8 numerical values**, one per line."
-        "- For each metric, feel free to use any number on a continuous scale within the specified range. "
-        "- Ensure that each number is a single value, not prefixed with labels or any other text. "
-        "- **Do NOT** include any labels, bullet points, explanations, or additional text."
-        ""
-        "The metrics you need to evaluate are as follows: "
-        "1. Humor: Rate the joke's funniness from 0.0 (not funny) to 100.0 (extremely funny). Considering cleverness, surprise, timing, relevance, originality, and engagement."
-        "2. Offensiveness: Rate how offensive the joke is from 0.0 (not offensive) to 100.0 (highly offensive). "
-        "3. Clarity: Rate how easy the joke is to understand, considering sentence structure and any cultural/contextual knowledge required. Rate from 0.0 (hard to understand) to 100.0 (easy to understand). "
-        "4. Surprise Factor: Rate how unexpected the punchline is from 0.0 (completely predictable) to 100.0 (highly surprising), based on how well it defies audience expectations. "
-        "5. Relatability: Rate how well a general audience can connect with the joke based on personal experience or cultural context. Rate from 0.0 (not relatable) to 100.0 (highly relatable). "
-        "6. Novelty: Rate how original the joke is from 0.0 (common or overused) to 100.0 (highly original), considering whether the joke brings a fresh perspective or new approach. "
-        "7. Conciseness: Rate how efficiently the joke delivers its punchline from 0.0 (too long-winded) to 100.0 (perfectly concise). "
-        "8. Sentiment: Rate the overall emotional tone of the joke from -100.0 (very negative) to 100.0 (very positive), with 0.0 being neutral. "
-        ""
-        "Return **only the numbers, one per line**, without any extra text."
+        "You are a joke analysis expert. Your task is to evaluate the following joke, collected from Reddit, based on several key metrics. "
+        "For each metric, provide only a single numerical value on a continuous scale (including decimals to capture subtle differences) on a separate line, and nothing else—no labels, bullet points, or extra text. "
+        "\n\nStrictly follow these guidelines:"
+        "\n- Output must contain exactly 8 numerical values, one per line."
+        "\n- Each value must be a continuous number; if applicable, include at least one decimal point to reflect nuanced differences (avoid rounding to whole numbers unless unavoidable)."
+        "\n- Do NOT include any labels, punctuation, or additional text other than the numbers."
+        "\n\nEvaluate the following metrics as follows:"
+        "\n1. Humor: Rate the joke's funniness on a continuous scale from 0.0 (not funny) to 100.0 (extremely funny). Consider cleverness, timing, surprise, originality, and engagement. Use the full spectrum to capture even subtle variations in humor."
+        "\n2. Offensiveness: Rate how offensive the joke is from 0.0 (not offensive) to 100.0 (extremely offensive). Consider any provocative or sensitive language."
+        "\n3. Clarity: Rate the ease with which the joke can be understood from 0.0 (difficult to understand) to 100.0 (very clear), considering structure and any cultural or contextual nuances."
+        "\n4. Surprise Factor: Rate how unexpected the punchline is from 0.0 (completely predictable) to 100.0 (highly surprising), based on how well it defies audience expectations."
+        "\n5. Relatability: Rate how well a general audience can connect with the joke from 0.0 (not relatable) to 100.0 (highly relatable), considering shared experiences and cultural references."
+        "\n6. Novelty: Rate how original the joke is from 0.0 (cliché or overused) to 100.0 (highly original), reflecting its freshness and innovative approach."
+        "\n7. Conciseness: Rate the efficiency of the joke’s delivery from 0.0 (too long-winded) to 100.0 (perfectly concise), assessing whether it delivers the punchline in a tight, effective manner."
+        "\n8. Sentiment: Rate the overall emotional tone of the joke on a continuous scale from -100.0 (very negative) to 100.0 (very positive), with 0.0 being neutral."
+        "\n\nReturn only the numerical values, one per line, exactly as specified."
     )
 
     payload = {
@@ -46,7 +41,7 @@ def gen_joke_metrics_llm(joke, url="http://localhost:11434/api/generate", model_
         "prompt": f"Joke:\n{joke}\n\nMetrics:",
         "stream": False,
         "max_tokens": 100,
-        "temperature": 0.2
+        "temperature": 0.7
     }
     
     try:
