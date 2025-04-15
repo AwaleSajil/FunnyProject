@@ -24,7 +24,7 @@ def gen_joke_metrics_llm(joke, url="http://localhost:11434/api/generate", model_
         "\n\nEvaluate the following metrics as follows:"
         "\n1. Humor: Output 1 if the joke is funny, and 0 otherwise."
         "\n2. Offensiveness: Output 1 if the joke is offensive, and 0 otherwise."
-        "\n3. Sentiment: Output 0 if the sentiment is neutral, 1 if it is positive, and 2 if it is negative."
+        "\n3. Sentiment: Evaluate the joke's sentiment. Output 0 if the joke expresses negative sentiment, and 1 if it expresses positive sentiment."
         "\n\nReturn only the integer values, one per line, exactly as specified."
     )
 
@@ -67,7 +67,7 @@ def gen_joke_metrics_llm(joke, url="http://localhost:11434/api/generate", model_
     return metrics
     
 
-def generate_joke_metrics(data, output_folder="./data/joke_metrics_dataset_classification/", sample_frac=0.1, batch_size=50):
+def generate_joke_metrics(data, output_folder="../data/joke_metrics_dataset_classification/", sample_frac=0.1, batch_size=50):
     """
     Generate joke metrics for classification and save them to multiple Parquet files in a folder.
 
@@ -134,6 +134,6 @@ def generate_joke_metrics(data, output_folder="./data/joke_metrics_dataset_class
 
 
 # Assuming 'data' is your original DataFrame
-final_result = generate_joke_metrics(data, sample_frac=0.0001, batch_size=1)
+final_result = generate_joke_metrics(data, sample_frac=0.1, batch_size=50)
 final_result = final_result[final_result["humor"] > -1]  # Filter out rows where metrics couldn't be generated successfully
 final_result.to_parquet("../data/labeled_jokes_classification.parquet")
