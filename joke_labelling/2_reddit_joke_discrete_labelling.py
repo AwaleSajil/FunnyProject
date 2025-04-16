@@ -17,14 +17,14 @@ def gen_joke_metrics_llm(joke, url="http://localhost:11434/api/generate", model_
 
     system_message = (
         "You are a joke analysis expert. Your task is to evaluate the following joke, collected from Reddit, based on three classification metrics. "
-        "For each metric, provide only a single integer value on a separate line, and nothing else—no labels, bullet points, or extra text. "
+        "For each metric, provide only a single binary integer value on a separate line, and nothing else—no labels, bullet points, or extra text. "
         "\n\nStrictly follow these guidelines:"
         "\n- Output must contain exactly 3 integer values, one per line."
         "\n- Do NOT include any labels, punctuation, or additional text other than the numbers."
         "\n\nEvaluate the following metrics as follows:"
-        "\n1. Humor: Output 1 if the joke is funny, and 0 otherwise."
-        "\n2. Offensiveness: Output 1 if the joke is offensive, and 0 otherwise."
-        "\n3. Sentiment: Evaluate the joke's sentiment. Output 0 if the joke expresses negative sentiment, and 1 if it expresses positive sentiment."
+        "\n1. Humor: Assess the joke solely on its comedic impact, wit, and delivery. Output 1 only if it is extraordinarily funny-that it triggers immediate, uncontrollable, laugh-out-loud amusement that far exceeds ordinary humor. Otherwise, output 0. Do not allow any potentially offensive or negative elements to influence your humor evaluation."
+        "\n2. Offensiveness: Determine if the joke includes language or content that is widely regarded as offensive. Evaluate whether the joke’s subject matter or phrasing is likely to be perceived as insensitive or harmful by a broad audience. Output 1 if it is offensive; otherwise, output 0."
+        "\n3. Sentiment: Evaluate the overall emotional tone of the joke. Consider whether the joke conveys a light-hearted, uplifting, or positive mood versus a negative or harmful one. Output 1 if the joke expresses a positive sentiment, and 0 if it expresses a negative sentiment."
         "\n\nReturn only the integer values, one per line, exactly as specified."
     )
 
@@ -33,8 +33,8 @@ def gen_joke_metrics_llm(joke, url="http://localhost:11434/api/generate", model_
         "system": system_message,
         "prompt": f"Joke:\n{joke}\n\nMetrics:",
         "stream": False,
-        "max_tokens": 20,
-        "temperature": 0.7
+        "max_tokens": 10,
+        "temperature": 0.8
     }
     
     try:
@@ -67,7 +67,7 @@ def gen_joke_metrics_llm(joke, url="http://localhost:11434/api/generate", model_
     return metrics
     
 
-def generate_joke_metrics(data, output_folder="../data/joke_metrics_dataset_classification/", sample_frac=0.1, batch_size=50):
+def generate_joke_metrics(data, model_name="gemma3:12b", output_folder="../data/joke_metrics_dataset_classification/", sample_frac=0.1, batch_size=50):
     """
     Generate joke metrics for classification and save them to multiple Parquet files in a folder.
 
@@ -82,6 +82,7 @@ def generate_joke_metrics(data, output_folder="../data/joke_metrics_dataset_clas
     """
 
     # Ensure the output folder exists
+    output_folder = f"{output_folder}{model_name}"
     os.makedirs(output_folder, exist_ok=True)
 
     # Sample the data
@@ -112,7 +113,7 @@ def generate_joke_metrics(data, output_folder="../data/joke_metrics_dataset_clas
         batch = remaining_rows.iloc[start:start + batch_size]
 
         # Generate classification metrics for the batch
-        metrics_list = [gen_joke_metrics_llm(joke) for joke in batch['joke']]
+        metrics_list = [gen_joke_metrics_llm(joke, model_name=model_name) for joke in batch['joke']]
 
         # Convert to DataFrame with appropriate column names
         metrics_df = pd.DataFrame(metrics_list, columns=['humor', 'offensiveness', 'sentiment'])
@@ -134,6 +135,7 @@ def generate_joke_metrics(data, output_folder="../data/joke_metrics_dataset_clas
 
 
 # Assuming 'data' is your original DataFrame
-final_result = generate_joke_metrics(data, sample_frac=0.1, batch_size=50)
+model_name="mistral:latest"
+final_result = generate_joke_metrics(data, model_name=model_name, sample_frac=0.1, batch_size=50)
 final_result = final_result[final_result["humor"] > -1]  # Filter out rows where metrics couldn't be generated successfully
-final_result.to_parquet("../data/labeled_jokes_classification.parquet")
+final_result.to_parquet(f"../data/labeled_jokes_classification_{model_name}.parquet")
