@@ -11,27 +11,22 @@ data = data[["date", "joke", "score"]]
 data['date'] = pd.to_datetime(data['date'], unit='s')
 
 
-def gen_joke_metrics_llm(joke, url="http://localhost:11434/api/generate", model_name="gemma3:12b", max_joke_len_thresh=5800):
+def gen_joke_metrics_llm(joke, metric_dict, url="http://localhost:11434/api/generate", model_name="gemma3:12b",max_joke_len_thresh=5800):
     if len(joke) > max_joke_len_thresh:
         print(f"Joke longer than max character threshold of: {max_joke_len_thresh}")
-        return [-1] * 8
+        return [-1] * len(metric_dict)
+    
+    metric_defination = "\n".join([f"\n{i}. {k.title()}: {v}" for i, (k, v) in enumerate(metric_dict.items())])
 
     system_message = (
         "You are a joke analysis expert. Your task is to evaluate the following joke, collected from Reddit, based on several key metrics. "
-        "For each metric, provide only a single numerical value on a continuous scale (including decimals to capture subtle differences) on a separate line, and nothing else—no labels, bullet points, or extra text. "
+        "For each metric, provide only a single numerical value on a continuous scale on a separate line, and nothing else—no labels, bullet points, or extra text. "
         "\n\nStrictly follow these guidelines:"
-        "\n- Output must contain exactly 8 numerical values, one per line."
+        f"\n- Output must contain exactly {len(metric_dict)} numerical values, one per line."
         "\n- Each value must be a continuous number; if applicable, include at least one decimal point to reflect nuanced differences (avoid rounding to whole numbers unless unavoidable)."
         "\n- Do NOT include any labels, punctuation, or additional text other than the numbers."
         "\n\nEvaluate the following metrics as follows:"
-        "\n1. Humor: Rate the joke's funniness on a continuous scale from 0.0 (not funny) to 100.0 (extremely funny). Consider cleverness, timing, surprise, originality, and engagement. Use the full spectrum to capture even subtle variations in humor."
-        "\n2. Offensiveness: Rate how offensive the joke is from 0.0 (not offensive) to 100.0 (extremely offensive). Consider any provocative or sensitive language."
-        "\n3. Clarity: Rate the ease with which the joke can be understood from 0.0 (difficult to understand) to 100.0 (very clear), considering structure and any cultural or contextual nuances."
-        "\n4. Surprise Factor: Rate how unexpected the punchline is from 0.0 (completely predictable) to 100.0 (highly surprising), based on how well it defies audience expectations."
-        "\n5. Relatability: Rate how well a general audience can connect with the joke from 0.0 (not relatable) to 100.0 (highly relatable), considering shared experiences and cultural references."
-        "\n6. Novelty: Rate how original the joke is from 0.0 (cliché or overused) to 100.0 (highly original), reflecting its freshness and innovative approach."
-        "\n7. Conciseness: Rate the efficiency of the joke’s delivery from 0.0 (too long-winded) to 100.0 (perfectly concise), assessing whether it delivers the punchline in a tight, effective manner."
-        "\n8. Sentiment: Rate the overall emotional tone of the joke on a continuous scale from -100.0 (very negative) to 100.0 (very positive), with 0.0 being neutral."
+        f"{metric_defination}"
         "\n\nReturn only the numerical values, one per line, exactly as specified."
     )
 
@@ -40,8 +35,8 @@ def gen_joke_metrics_llm(joke, url="http://localhost:11434/api/generate", model_
         "system": system_message,
         "prompt": f"Joke:\n{joke}\n\nMetrics:",
         "stream": False,
-        "max_tokens": 100,
-        "temperature": 0.7
+        "max_tokens": 20,
+        "temperature": 0.8
     }
     
     try:
@@ -49,7 +44,7 @@ def gen_joke_metrics_llm(joke, url="http://localhost:11434/api/generate", model_
         response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
     except requests.exceptions.RequestException as e:
         print(f"Request error: {e}")
-        return [-1] * 8  # Return a list with placeholders if request fails
+        return [-1] * len(metric_dict)  # Return a list with placeholders if request fails
     
     if response.status_code == 200:
         try:
@@ -58,23 +53,23 @@ def gen_joke_metrics_llm(joke, url="http://localhost:11434/api/generate", model_
             metrics = [i.strip() for i in metrics if i.strip()]  # Clean up any empty lines
 
             # Ensure there are exactly 8 metrics returned
-            if len(metrics) != 8:
+            if len(metrics) != len(metric_dict):
                 print("Error: Incorrect number of metrics returned.")
-                return [-1] * 8  # Return placeholders in case of incorrect metrics count
+                return [-1] * len(metric_dict)   # Return placeholders in case of incorrect metrics count
 
             # Attempt to convert all metrics to floats
             metrics = [float(i) for i in metrics]
         except (ValueError, KeyError, IndexError) as e:
             print(f"Error processing response: {e}")
-            return [-1] * 8  # Return placeholders if error in processing the response
+            return [-1] * len(metric_dict)   # Return placeholders if error in processing the response
     else:
         print(f"Error: Received status code {response.status_code}")
-        return [-1] * 8  # Return placeholders in case of non-200 response
+        return [-1] * len(metric_dict)   # Return placeholders in case of non-200 response
 
     return metrics
     
 
-def generate_joke_metrics(data, output_folder="./data/joke_metrics_dataset_1/", sample_frac=0.1, batch_size=50):
+def generate_joke_metrics(data, model_name="gemma3:12b", output_folder="../data/joke_metrics_dataset_regression/", sample_frac=0.1, batch_size=50):
     """
     Generate joke metrics and save them to multiple Parquet files in a folder.
 
@@ -89,6 +84,7 @@ def generate_joke_metrics(data, output_folder="./data/joke_metrics_dataset_1/", 
     """
 
     # Ensure the output folder exists
+    output_folder = f"{output_folder}{model_name}"
     os.makedirs(output_folder, exist_ok=True)
 
     # Sample the data
@@ -115,16 +111,17 @@ def generate_joke_metrics(data, output_folder="./data/joke_metrics_dataset_1/", 
 
     # Process and save in batches
     new_data_list = []
+    metrics_dict = {'humor': "Rate the joke's funniness on a continuous scale from 0 (not funny) to 100 (extraordinarily funny-that it triggers immediate, uncontrollable, laugh-out-loud amusement ). Assess the joke solely on its comedic impact, wit, and delivery. Use the full spectrum to capture even subtle variations in humor. Do not allow any potentially offensive or negative elements to influence your humor evaluation.", 
+                    'offensiveness': "Rate how offensive the joke is from 0.0 (not offensive) to 100.0 (extremely offensive). Evaluate whether the joke’s subject matter or phrasing is likely to be perceived as insensitive or harmful by a broad audience.", 
+                    'sentiment': "Rate the overall emotional tone of the joke on a continuous scale from -100.0 (very negative) to 100.0 (very positive), with 0.0 being neutral. Consider whether the joke conveys a light-hearted, uplifting, or positive mood versus a negative or harmful one."}
     for start in tqdm(range(0, len(remaining_rows), batch_size), desc="Processing batches"):
         batch = remaining_rows.iloc[start:start + batch_size]
 
         # Generate metrics for the batch
-        metrics_list = [gen_joke_metrics_llm(joke) for joke in batch['joke']]
+        metrics_list = [gen_joke_metrics_llm(joke, metrics_dict, model_name=model_name) for joke in batch['joke']]
 
         # Convert to DataFrame
-        metrics_df = pd.DataFrame(metrics_list, columns=[
-            'humor', 'offensiveness', 'clarity', 'surprise_factor', 'relatability', 'novelty', 'conciseness', 'sentiment'
-        ])
+        metrics_df = pd.DataFrame(metrics_list, columns=list(metrics_dict.keys()))
         metrics_df.index = batch.index
 
         # Append metrics to batch
@@ -143,6 +140,7 @@ def generate_joke_metrics(data, output_folder="./data/joke_metrics_dataset_1/", 
 
 
 # Assuming 'data' is your original DataFrame
-final_result = generate_joke_metrics(data)
-final_result = final_result[final_result["humor"] > -1]
-final_result.to_parquet("../data/labeled_jokes.parquet")
+model_name="mistral:latest"
+final_result = generate_joke_metrics(data, model_name=model_name, sample_frac=0.1, batch_size=50)
+final_result = final_result[final_result["humor"] > -1]  # Filter out rows where metrics couldn't be generated successfully
+final_result.to_parquet(f"../data/labeled_jokes_regression_{model_name}.parquet")
