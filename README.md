@@ -12,9 +12,24 @@ The dataset consists of over 570,000 jokes sourced from Reddit's r/Jokes communi
 ### Data Labeling
 - **10% Subset:** Labeled using decoder-based LLMs (Gemma3:12b and Mistral:7b).
 - **Remaining 90%:** Annotated by fine-tuned encoder models (BERT, RoBERTa, MiniLM).
+- 
+<table>
+  <tr>
+    <td>
+      <img src="https://github.com/user-attachments/assets/76713b94-98e8-45a6-83c8-c182b2555e48" width="400">
+    </td>
+    <td>
+      <img src="https://github.com/user-attachments/assets/b38651e9-cc06-4459-8778-eef43736ea1e" width="400">
+    </td>
+  </tr>
+  <tr>
+    <td align="center">Venn Diagram – Gemma3:12b</td>
+    <td align="center">Venn Diagram – Mistral:7b</td>
+  </tr>
+</table>
 
 ## Project Workflow
-![Project Workflow](fig/project_workflow.png)
+![project_workflow (1)](https://github.com/user-attachments/assets/d6ba4b31-1bcd-4c3a-a53e-8eeb9b70d2f1)
 
 
 ## Model Experiments
@@ -24,11 +39,16 @@ We fine-tuned three transformer-based encoder models:
 - **MiniLM (all-MiniLM-L6-v2)**
 
 ## Results
-| Model                 | Test Weighted F1-Score |
-|-----------------------|------------------------|
-| **BERT**              | 0.86                   |
-| **RoBERTa**           | 0.86                   |
-| **MiniLM**            | 0.85                   |
+| Metric           | Support | BERT_P | BERT_R | BERT_F1 | MiniLM_P | MiniLM_R | MiniLM_F1 | RoBERTa_P | RoBERTa_R | RoBERTa_F1 |
+|------------------|---------|--------|--------|---------|----------|----------|-----------|-----------|-----------|------------|
+| Humor            | 3,809   | 0.83   | 0.88   | 0.85    | 0.82     | 0.87     | 0.84      | 0.82      | 0.91      | 0.86       |
+| Offensiveness    | 1,406   | 0.69   | 0.63   | 0.66    | 0.67     | 0.60     | 0.63      | 0.74      | 0.57      | 0.64       |
+| Sentiment        | 4,706   | 0.92   | 0.94   | 0.93    | 0.91     | 0.94     | 0.92      | 0.90      | 0.97      | 0.93       |
+| Micro Avg        | 9,921   | 0.85   | 0.87   | 0.86    | 0.84     | 0.86     | 0.85      | 0.85      | 0.89      | 0.87       |
+| Macro Avg        | 9,921   | 0.81   | 0.82   | 0.81    | 0.80     | 0.80     | 0.80      | 0.82      | 0.81      | 0.81       |
+| Weighted Avg     | 9,921   | 0.85   | 0.87   | 0.86    | 0.84     | 0.86     | 0.85      | 0.85      | 0.89      | 0.86       |
+| Samples Avg      | 9,921   | 0.85   | 0.87   | 0.85    | 0.84     | 0.86     | 0.83      | 0.85      | 0.88      | 0.85       |
+| Overall Accuracy | 9,921   | 0.70   |   –    |   –     | 0.68     |    –     |     –     | 0.70      |    –      |    –       |
 
 
 ## Getting Started
